@@ -1,0 +1,27 @@
+# Node modules
+node_modules/
+
+# Build output
+dist/
+
+# Logs
+*.log
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Config local
+.env
+.env.*
+
+# Reportes generados por la herramienta
+*.json
+
+# VSCode settings (opcional)
+.vscode/
+
+*.report.json
