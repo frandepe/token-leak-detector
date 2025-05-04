@@ -28,3 +28,17 @@ export const patterns: RegExp[] = [
   /\b(client_secret|consumer_secret|auth_token|refresh_token|session_token)[^=\n]{0,20}['"][^'"]{10,}['"]/gi, // Tokens genéricos con valores
   /[a-zA-Z0-9_]+\s*=\s*['"][A-Za-z0-9\-_]+['"]/g, // Captura cualquier asignación de variable (ej: api_key = "12345abcdef")
 ];
+
+export const passwordPatterns: RegExp[] = [
+  /\b(password|pwd|clave|secret|db_pass|token)[\s]*=[\s]*['"][^"']{6,}['"]/g, // Detecta contraseñas con palabras clave
+  /(?:const|let|var)\s+\w+\s*=\s*["'][^"']*["']\s*;/g, // Asignaciones de variables con valores
+  /[\w]+\s*=\s*["'][^"']{8,}["']/g, // Cualquier asignación de cadenas largas
+];
+
+// Detectar comparaciones de contraseñas con valores fijos, como "123456"
+export const insecurePasswordComparisonPattern: RegExp[] = [
+  /\b(?:if|else if)\s*\(.*\s*==\s*["'][a-zA-Z0-9]{6,}["']\s*\)/g, // Igualdad con contraseñas duras (sin triple igual)
+  /\b(?:if|else if)\s*\(.*\s*===\s*["'][a-zA-Z0-9]{6,}["']\s*\)/g, // Comparaciones con contraseñas de texto duro
+  /\b(?:if|else if)\s*\(.*\s*==\s*["'][^"']+["']\s*\)/g, // Comparaciones con cualquier cadena de texto (como "qwerty")
+  /\b(?:if|else if)\s*\(.*\s*===\s*["'][^"']+["']\s*\)/g, // Comparaciones estrictas con cadenas de texto
+];

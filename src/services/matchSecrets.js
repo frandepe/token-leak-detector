@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.matchSecrets = void 0;
+exports.matchSecrets = matchSecrets;
 const patterns_1 = require("../config/patterns");
 // Función que recibe un contenido en texto y busca coincidencias de secretos usando los patrones definidos
 function matchSecrets(content) {
@@ -17,4 +17,3 @@ function matchSecrets(content) {
     }
     return matches;
 }
-exports.matchSecrets = matchSecrets;

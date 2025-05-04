@@ -1,52 +1,97 @@
+#!/usr/bin/env node
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 const commander_1 = require("commander");
-const fs = __importStar(require("fs"));
+const fs = require("fs");
 const scanner_1 = require("./services/scanner");
+// Crear una nueva instancia de Command
 const program = new commander_1.Command();
+// Configurar el programa
 program
-    .option("-p, --path <path>", "Path to scan") // Opción para especificar la ruta a escanear
-    .option("-o, --output <output>", "Output file") // Opción para especificar el archivo de salida
-    .option("-i, --ignore <ignore>", "Comma separated list of patterns to ignore"); // Opción para especificar patrones a ignorar
-program.parse(process.argv);
+    .name("token-leak-detector")
+    .version("1.3.0")
+    .description("Herramienta para detectar posibles tokens o secretos en archivos fuente.")
+    .requiredOption("-p, --path <path>", "Path to scan")
+    .option("-o, --output <output>", "Output file")
+    .option("-i, --ignore <patterns>", "Comma separated list of patterns to ignore")
+    .option("-v, --verbose", "Show detailed output")
+    .parse();
+// Obtener las opciones
 const options = program.opts();
-const { path, output, ignore } = options;
-// Comprobamos si se proporcionó una ruta para escanear
-if (!path) {
-    console.log("Please provide a path to scan.");
+// Verificar que se proporcionó una ruta
+if (!options.path) {
+    console.error("Error: Please provide a path to scan using --path option");
+    program.help();
     process.exit(1);
 }
-// Si se proporcionó un ignore, lo procesamos y convertimos en un array
-const ignorePatterns = ignore ? ignore.split(",") : [];
-// Llamamos a la función scanDirectory pasando el ignorePatterns
-const scanResult = (0, scanner_1.scanDirectory)(path, ignorePatterns);
-// Si se especificó un archivo de salida, escribimos el resultado en ese archivo
-if (output) {
-    fs.writeFileSync(output, JSON.stringify(scanResult, null, 2));
+// Procesar los patrones a ignorar
+const ignorePatterns = options.ignore
+    ? options.ignore.split(",").map((pattern) => pattern.trim())
+    : [];
+// Mostrar información sobre la ejecución
+console.log(`Scanning path: ${options.path}`);
+if (ignorePatterns.length > 0) {
+    console.log(`Ignoring patterns: ${ignorePatterns.join(", ")}`);
 }
-else {
-    console.log(scanResult);
+try {
+    // Ejecutar el escaneo
+    const scanResult = (0, scanner_1.scanDirectory)(options.path, ignorePatterns);
+    // Filtrar los resultados para omitir el archivo "src\\config\\patterns.ts"
+    const filteredFindings = scanResult.findings.filter((finding) => {
+        return finding.file !== "src\\config\\patterns.ts"; // Omitir el archivo específico
+    });
+    // Formatear los resultados para una mejor visualización
+    const formattedResults = {
+        scannedAt: scanResult.scannedAt,
+        findings: filteredFindings.map((finding) => {
+            const result = {
+                file: finding.file,
+            };
+            if (finding.matches && finding.matches.length > 0) {
+                result.regexMatches = finding.matches;
+            }
+            if (finding.astFindings && finding.astFindings.length > 0) {
+                result.codeAnalysis = finding.astFindings.map((f) => ({
+                    type: f.type,
+                    code: f.code,
+                    line: f.location.line,
+                    column: f.location.column,
+                    severity: f.severity,
+                    description: f.description,
+                }));
+            }
+            return result;
+        }),
+    };
+    // Guardar o mostrar los resultados
+    if (options.output) {
+        fs.writeFileSync(options.output, JSON.stringify(formattedResults, null, 2));
+        console.log(`Results saved to: ${options.output}`);
+    }
+    else {
+        if (options.verbose) {
+            console.log(JSON.stringify(formattedResults, null, 2));
+        }
+        else {
+            // Mostrar un resumen más conciso
+            console.log(`\nScan completed at: ${formattedResults.scannedAt}`);
+            console.log(`Files with findings: ${formattedResults.findings.length}`);
+            formattedResults.findings.forEach((finding) => {
+                console.log(`\nFile: ${finding.file}`);
+                if (finding.regexMatches) {
+                    console.log(`  Regex matches: ${finding.regexMatches.length}`);
+                }
+                if (finding.codeAnalysis) {
+                    console.log(`  Code issues: ${finding.codeAnalysis.length}`);
+                    finding.codeAnalysis.forEach((issue) => {
+                        console.log(`    - [${issue.severity.toUpperCase()}] ${issue.description} (line ${issue.line})`);
+                    });
+                }
+            });
+        }
+    }
+}
+catch (error) {
+    console.error("Error during scan:", error.message);
+    process.exit(1);
 }

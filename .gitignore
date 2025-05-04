@@ -18,10 +18,7 @@ Thumbs.db
 .env
 .env.*
 
-# Reportes generados por la herramienta
-*.json
-
 # VSCode settings (opcional)
 .vscode/
 
-*.report.json
+report.json
