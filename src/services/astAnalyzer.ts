@@ -83,12 +83,15 @@ export function analyzeFile(filePath: string): Finding[] {
                   test.getEnd()
                 );
 
+                const { line, character } =
+                  sourceFile.getLineAndCharacterOfPosition(test.getStart());
+
                 findings.push({
                   type: "insecure_password_comparison",
                   code: comparisonCode,
                   location: {
-                    line: test.getStart(),
-                    column: test.getStart(),
+                    line: line + 1, // +1 para convertir de índice basado en 0 a índice basado en 1
+                    column: character + 1, // +1 para convertir de índice basado en 0 a índice basado en 1
                   },
                   file: filePath,
                   severity: "high",
@@ -116,12 +119,15 @@ export function analyzeFile(filePath: string): Finding[] {
                 node.getEnd()
               );
 
+              const { line, character } =
+                sourceFile.getLineAndCharacterOfPosition(node.getStart());
+
               findings.push({
                 type: "hardcoded_password",
                 code: declarationCode,
                 location: {
-                  line: node.getStart(),
-                  column: node.getStart(),
+                  line: line + 1, // +1 para convertir de índice basado en 0 a índice basado en 1
+                  column: character + 1, // +1 para convertir de índice basado en 0 a índice basado en 1
                 },
                 file: filePath,
                 severity: "high",
