@@ -137,6 +137,46 @@ export function analyzeFile(filePath: string): Finding[] {
           }
         }
 
+        // Buscar llamadas HTTP que envíen claves o tokens en la URL o en el body
+        if (ts.isCallExpression(node)) {
+          const expression = node.expression;
+
+          if (ts.isIdentifier(expression) && expression.text === "fetch") {
+            const args = node.arguments;
+
+            if (args.length > 0) {
+              const urlArg = args[0];
+
+              if (ts.isStringLiteral(urlArg)) {
+                const urlValue = urlArg.text;
+
+                // Buscar tokens o claves en la URL
+                const tokenPattern = /[?&](token|apiKey|key|auth)=([^&]+)/i;
+                if (tokenPattern.test(urlValue)) {
+                  const fetchCode = code.substring(
+                    node.getStart(),
+                    node.getEnd()
+                  );
+                  const { line, character } =
+                    sourceFile.getLineAndCharacterOfPosition(node.getStart());
+
+                  findings.push({
+                    type: "sensitive_data_in_url",
+                    code: fetchCode,
+                    location: {
+                      line: line + 1, // +1 para convertir de índice basado en 0 a índice basado en 1
+                      column: character + 1, // +1 para convertir de índice basado en 0 a índice basado en 1
+                    },
+                    file: filePath,
+                    severity: "high",
+                    description: `Clave o token enviado en la URL detectado en la llamada fetch: "${urlValue}"`,
+                  });
+                }
+              }
+            }
+          }
+        }
+
         // Recursivamente visitar los hijos del nodo actual
         ts.forEachChild(node, visitNode);
       }
