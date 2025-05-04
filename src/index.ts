@@ -21,6 +21,21 @@ program
     "Comma separated list of patterns to ignore"
   )
   .option("-v, --verbose", "Show detailed output")
+  .on("--help", () => {
+    console.log(`
+    Ejemplo de uso:
+    $ token-leak-detector --path ./src --output result.json
+
+    Opciones:
+    -p, --path <path>        Directorio a escanear.
+    -o, --output <output>    Archivo de salida para guardar los resultados.
+    -i, --ignore <patterns>  Patrones a ignorar, separados por comas (ej. "token,secret").
+    -v, --verbose            Muestra salida detallada.
+
+    Descripción:
+    Esta herramienta busca posibles secretos o tokens expuestos en archivos fuente.
+    `);
+  })
   .parse();
 
 // Obtener las opciones
@@ -52,7 +67,8 @@ try {
   const filteredFindings = scanResult.findings.filter((finding: any) => {
     return !(
       finding.file === "src\\config\\patterns.ts" ||
-      finding.file === "src\\config\\patterns.js"
+      finding.file === "src\\config\\patterns.js" ||
+      finding.file === "src\\services\\astAnalyzer.ts"
     );
   });
 
@@ -63,12 +79,6 @@ try {
       const result: any = {
         file: finding.file,
       };
-
-      // Eliminar completamente regexMatches de los resultados
-      // No agregamos ni mantenemos regexMatches
-      // if (finding.matches && finding.matches.length > 0) {
-      //   result.regexMatches = finding.matches;  // Eliminar esta parte
-      // }
 
       if (finding.astFindings && finding.astFindings.length > 0) {
         result.codeAnalysis = finding.astFindings.map((f: any) => ({
@@ -93,14 +103,12 @@ try {
     if (options.verbose) {
       console.log(JSON.stringify(formattedResults, null, 2));
     } else {
-      // Mostrar un resumen más conciso
       console.log(`\nScan completed at: ${formattedResults.scannedAt}`);
       console.log(`Files with findings: ${formattedResults.findings.length}`);
 
       formattedResults.findings.forEach((finding: any) => {
         console.log(`\nFile: ${finding.file}`);
 
-        // No mostrar regexMatches, ya que hemos eliminado ese campo
         if (finding.codeAnalysis) {
           console.log(`  Code issues: ${finding.codeAnalysis.length}`);
           finding.codeAnalysis.forEach((issue: any) => {

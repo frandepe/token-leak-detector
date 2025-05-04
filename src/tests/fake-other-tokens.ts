@@ -13,3 +13,21 @@ async function fetchData() {
 }
 
 fetchData();
+
+// import axios from "axios"; // instalar axios para probar
+
+// async function fetchDatas() {
+//   try {
+//     const response = await axios.get("https://api.example.com", {
+//       params: { token: "abc123" }, // Parámetro token enviado en la URL
+//     });
+//     console.log(response.data);
+//   } catch (error) {
+//     console.error("Error fetching data:", error);
+//   }
+// }
+
+// fetchDatas();
+
+// TODO: quitar esta key antes de subir
+// apiKey: "1234"

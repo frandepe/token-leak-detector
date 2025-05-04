@@ -1,28 +1,6 @@
 import * as fs from "fs";
 import * as ts from "typescript";
-
-// Lista de contraseñas comunes o débiles para detectar
-const COMMON_PASSWORDS = [
-  "123456",
-  "password",
-  "qwerty",
-  "admin",
-  "welcome",
-  "admin123",
-  "letmein",
-  "12345678",
-  "password123",
-];
-
-// Nombres de variables que podrían contener contraseñas
-const PASSWORD_VARIABLE_NAMES = [
-  "password",
-  "pwd",
-  "pass",
-  "secret",
-  "credentials",
-  "key",
-];
+import { COMMON_PASSWORDS, PASSWORD_VARIABLE_NAMES } from "../config/patterns";
 
 interface Finding {
   type: string;
@@ -40,10 +18,8 @@ export function analyzeFile(filePath: string): Finding[] {
   const findings: Finding[] = [];
 
   try {
-    // Leer el contenido del archivo
     const code = fs.readFileSync(filePath, "utf8");
 
-    // Parsear el código TypeScript a AST
     try {
       const sourceFile = ts.createSourceFile(
         filePath,
@@ -52,10 +28,40 @@ export function analyzeFile(filePath: string): Finding[] {
         true
       );
 
-      // Función recursiva para analizar el AST y detectar los hallazgos
       function visitNode(node: ts.Node) {
+        // Buscar comentarios en el código fuente
+        const comments = ts.getLeadingCommentRanges(code, node.getFullStart());
+
+        if (comments) {
+          comments.forEach((comment) => {
+            const commentText = code.substring(comment.pos, comment.end).trim();
+
+            // Buscar si contiene un posible token o clave
+            const keyPattern = /(apiKey|token|key|auth)[:\s]*["']([^"']+)["']/i;
+            const match = keyPattern.exec(commentText);
+
+            if (match) {
+              const keyComment = match[0];
+              const { line, character } =
+                sourceFile.getLineAndCharacterOfPosition(comment.pos);
+
+              findings.push({
+                type: "sensitive_data_in_comment",
+                code: keyComment,
+                location: {
+                  line: line + 1,
+                  column: character + 1,
+                },
+                file: filePath,
+                severity: "high", // Aquí puedes ajustar el nivel de severidad
+                description: `Clave o token encontrado en un comentario: "${keyComment}"`,
+              });
+            }
+          });
+        }
+
+        // Analizar otros tipos de nodos, como if statements, variables, etc.
         if (ts.isIfStatement(node)) {
-          // Analizar la condición de la sentencia `if`
           const test = node.expression;
 
           if (ts.isBinaryExpression(test)) {
@@ -69,7 +75,17 @@ export function analyzeFile(filePath: string): Finding[] {
                 ? test.right.text
                 : "";
 
-              // Verificar si el string es una contraseña común o tiene características de contraseña
+              let severity: "high" | "medium" | "low" = "high";
+
+              // Criterios para ajustar el nivel de severidad
+              if (COMMON_PASSWORDS.includes(stringValue)) {
+                severity = "high";
+              } else if (stringValue.length < 6) {
+                severity = "medium";
+              } else {
+                severity = "low";
+              }
+
               if (
                 COMMON_PASSWORDS.includes(stringValue) ||
                 (stringValue.length >= 3 &&
@@ -77,7 +93,6 @@ export function analyzeFile(filePath: string): Finding[] {
                     stringValue
                   ))
               ) {
-                // Extraer el código de la comparación
                 const comparisonCode = code.substring(
                   test.getStart(),
                   test.getEnd()
@@ -90,11 +105,11 @@ export function analyzeFile(filePath: string): Finding[] {
                   type: "insecure_password_comparison",
                   code: comparisonCode,
                   location: {
-                    line: line + 1, // +1 para convertir de índice basado en 0 a índice basado en 1
-                    column: character + 1, // +1 para convertir de índice basado en 0 a índice basado en 1
+                    line: line + 1,
+                    column: character + 1,
                   },
                   file: filePath,
-                  severity: "high",
+                  severity,
                   description: `Comparación insegura de contraseña detectada: "${stringValue}"`,
                 });
               }
@@ -102,7 +117,6 @@ export function analyzeFile(filePath: string): Finding[] {
           }
         }
 
-        // Detectar asignaciones de contraseñas hardcodeadas
         if (ts.isVariableDeclaration(node)) {
           const id = node.name;
           const init = node.initializer;
@@ -126,21 +140,21 @@ export function analyzeFile(filePath: string): Finding[] {
                 type: "hardcoded_password",
                 code: declarationCode,
                 location: {
-                  line: line + 1, // +1 para convertir de índice basado en 0 a índice basado en 1
-                  column: character + 1, // +1 para convertir de índice basado en 0 a índice basado en 1
+                  line: line + 1,
+                  column: character + 1,
                 },
                 file: filePath,
-                severity: "high",
+                severity: "high", // Esto se puede ajustar según tus criterios
                 description: `Contraseña hardcodeada detectada en variable "${id.text}"`,
               });
             }
           }
         }
 
-        // Buscar llamadas HTTP que envíen claves o tokens en la URL o en el body
         if (ts.isCallExpression(node)) {
           const expression = node.expression;
 
+          // Detección para fetch con claves en URL
           if (ts.isIdentifier(expression) && expression.text === "fetch") {
             const args = node.arguments;
 
@@ -150,7 +164,6 @@ export function analyzeFile(filePath: string): Finding[] {
               if (ts.isStringLiteral(urlArg)) {
                 const urlValue = urlArg.text;
 
-                // Buscar tokens o claves en la URL
                 const tokenPattern = /[?&](token|apiKey|key|auth)=([^&]+)/i;
                 if (tokenPattern.test(urlValue)) {
                   const fetchCode = code.substring(
@@ -164,24 +177,142 @@ export function analyzeFile(filePath: string): Finding[] {
                     type: "sensitive_data_in_url",
                     code: fetchCode,
                     location: {
-                      line: line + 1, // +1 para convertir de índice basado en 0 a índice basado en 1
-                      column: character + 1, // +1 para convertir de índice basado en 0 a índice basado en 1
+                      line: line + 1,
+                      column: character + 1,
                     },
                     file: filePath,
-                    severity: "high",
+                    severity: "high", // Aquí también puedes aplicar tu lógica
                     description: `Clave o token enviado en la URL detectado en la llamada fetch: "${urlValue}"`,
                   });
                 }
               }
             }
           }
+
+          // Detección para axios y axios.get/post/... con claves en URL o params
+          if (
+            (ts.isIdentifier(expression) && expression.text === "axios") ||
+            (ts.isPropertyAccessExpression(expression) &&
+              ts.isIdentifier(expression.expression) &&
+              expression.expression.text === "axios")
+          ) {
+            const args = node.arguments;
+
+            // Caso: axios("https://...") con token en la URL
+            if (args.length > 0 && ts.isStringLiteral(args[0])) {
+              const urlValue = args[0].text;
+              const tokenPattern = /[?&](token|apiKey|key|auth)=([^&]+)/i;
+
+              if (tokenPattern.test(urlValue)) {
+                const axiosCode = code.substring(
+                  node.getStart(),
+                  node.getEnd()
+                );
+                const { line, character } =
+                  sourceFile.getLineAndCharacterOfPosition(node.getStart());
+
+                findings.push({
+                  type: "sensitive_data_in_url",
+                  code: axiosCode,
+                  location: {
+                    line: line + 1,
+                    column: character + 1,
+                  },
+                  file: filePath,
+                  severity: "high", // Aquí también puedes aplicar tu lógica
+                  description: `Clave o token enviado en la URL detectado en llamada axios: "${urlValue}"`,
+                });
+              }
+            }
+
+            // Caso: axios.get/post("...", { params: { token: "..." } })
+            if (args.length > 1 && ts.isObjectLiteralExpression(args[1])) {
+              const configObject = args[1];
+              configObject.properties.forEach((prop) => {
+                if (
+                  ts.isPropertyAssignment(prop) &&
+                  ts.isIdentifier(prop.name) &&
+                  prop.name.text === "params" &&
+                  ts.isObjectLiteralExpression(prop.initializer)
+                ) {
+                  prop.initializer.properties.forEach((paramProp) => {
+                    if (
+                      ts.isPropertyAssignment(paramProp) &&
+                      ts.isIdentifier(paramProp.name) &&
+                      ["token", "apiKey", "key", "auth"].includes(
+                        paramProp.name.text
+                      ) &&
+                      ts.isStringLiteral(paramProp.initializer)
+                    ) {
+                      const axiosCode = code.substring(
+                        node.getStart(),
+                        node.getEnd()
+                      );
+                      const { line, character } =
+                        sourceFile.getLineAndCharacterOfPosition(
+                          node.getStart()
+                        );
+
+                      findings.push({
+                        type: "sensitive_data_in_url",
+                        code: axiosCode,
+                        location: {
+                          line: line + 1,
+                          column: character + 1,
+                        },
+                        file: filePath,
+                        severity: "high", // Aquí también puedes aplicar tu lógica
+                        description: `Clave o token enviado en "params" en llamada axios: ${paramProp.name.text}`,
+                      });
+                    }
+                  });
+                }
+              });
+            }
+
+            // Caso: axios({ url: "..." }) con token en la URL
+            if (args.length > 0 && ts.isObjectLiteralExpression(args[0])) {
+              const config = args[0];
+
+              config.properties.forEach((prop) => {
+                if (
+                  ts.isPropertyAssignment(prop) &&
+                  ts.isIdentifier(prop.name) &&
+                  prop.name.text === "url" &&
+                  ts.isStringLiteral(prop.initializer)
+                ) {
+                  const urlValue = prop.initializer.text;
+                  const tokenPattern = /[?&](token|apiKey|key|auth)=([^&]+)/i;
+
+                  if (tokenPattern.test(urlValue)) {
+                    const axiosCode = code.substring(
+                      node.getStart(),
+                      node.getEnd()
+                    );
+                    const { line, character } =
+                      sourceFile.getLineAndCharacterOfPosition(node.getStart());
+
+                    findings.push({
+                      type: "sensitive_data_in_url",
+                      code: axiosCode,
+                      location: {
+                        line: line + 1,
+                        column: character + 1,
+                      },
+                      file: filePath,
+                      severity: "high", // Aquí también puedes aplicar tu lógica
+                      description: `Clave o token enviado en la URL detectado en llamada axios: "${urlValue}"`,
+                    });
+                  }
+                }
+              });
+            }
+          }
         }
 
-        // Recursivamente visitar los hijos del nodo actual
         ts.forEachChild(node, visitNode);
       }
 
-      // Comenzar la visita de nodos en el AST
       visitNode(sourceFile);
     } catch (parseError) {
       console.error(`Error parsing file ${filePath}:`, parseError);

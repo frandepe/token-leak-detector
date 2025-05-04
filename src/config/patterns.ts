@@ -1,5 +1,3 @@
-// patterns.ts
-
 export const patterns: RegExp[] = [
   /AIza[0-9A-Za-z\-_]{35}/g, // API Key de Google
   /ya29\.[0-9A-Za-z\-_]+/g, // OAuth2 tokens de Google
@@ -41,4 +39,75 @@ export const insecurePasswordComparisonPattern: RegExp[] = [
   /\b(?:if|else if)\s*\(.*\s*===\s*["'][a-zA-Z0-9]{6,}["']\s*\)/g, // Comparaciones con contraseñas de texto duro
   /\b(?:if|else if)\s*\(.*\s*==\s*["'][^"']+["']\s*\)/g, // Comparaciones con cualquier cadena de texto (como "qwerty")
   /\b(?:if|else if)\s*\(.*\s*===\s*["'][^"']+["']\s*\)/g, // Comparaciones estrictas con cadenas de texto
+];
+
+export const PASSWORD_VARIABLE_NAMES = [
+  "password",
+  "pwd",
+  "pass",
+  "secret",
+  "credentials",
+  "key",
+  "apiKey",
+  "auth",
+  "token",
+  "accessToken",
+  "refreshToken",
+  "clientSecret",
+  "userPassword",
+  "passphrase",
+  "api_secret",
+  "dbPassword",
+  "userPass",
+  "login",
+  "sessionKey",
+  "securityKey",
+  "loginPassword",
+  "passwordHash",
+  "privateKey",
+  "publicKey",
+  "authToken",
+  "bearerToken",
+  "sessionToken",
+  "sshKey",
+  "cookie",
+  "api_token",
+];
+
+export const COMMON_PASSWORDS = [
+  "123456",
+  "password",
+  "qwerty",
+  "admin",
+  "welcome",
+  "admin123",
+  "letmein",
+  "12345678",
+  "password123",
+  "12345",
+  "1234",
+  "1q2w3e4r",
+  "abc123",
+  "password1",
+  "qwerty123",
+  "iloveyou",
+  "monkey",
+  "dragon",
+  "sunshine",
+  "princess",
+  "football",
+  "111111",
+  "123123",
+  "welcome123",
+  "trustno1",
+  "123qwe",
+  "1qaz2wsx",
+  "letmein123",
+  "qwertyuiop",
+  "123321",
+  "qazwsx",
+  "password1",
+  "shadow",
+  "1password",
+  "qwerty1",
 ];
