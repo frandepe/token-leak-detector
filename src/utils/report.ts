@@ -1,3 +1,4 @@
+// Archivo sin utilizar actualmente
 import * as fs from "fs";
 
 // Definimos la interfaz 'Report' que describe la estructura del reporte generado

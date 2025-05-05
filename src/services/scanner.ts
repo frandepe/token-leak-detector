@@ -1,6 +1,6 @@
 import * as fs from "fs";
 import * as path from "path";
-import { matchSecrets } from "./matchSecrets";
+// import { matchSecrets } from "./matchSecrets";
 import { analyzeFile } from "./astAnalyzer";
 
 // Definimos las extensiones de archivo permitidas para el escaneo
@@ -51,8 +51,8 @@ export function scanDirectory(dirPath: string, ignorePatterns: string[]) {
         const ext = path.extname(item);
         if (allowedExtensions.includes(ext)) {
           // Análisis basado en expresiones regulares
-          const content = fs.readFileSync(fullPath, "utf8"); // Leemos el contenido del archivo
-          const regexMatches = matchSecrets(content); // Usamos la función 'matchSecrets' para encontrar posibles secretos
+          // const content = fs.readFileSync(fullPath, "utf8"); // Leemos el contenido del archivo
+          // const regexMatches = matchSecrets(content); // Usamos la función 'matchSecrets' para encontrar posibles secretos
 
           // Análisis basado en AST para archivos JavaScript/TypeScript
           let astFindings: any[] = [];
@@ -61,10 +61,10 @@ export function scanDirectory(dirPath: string, ignorePatterns: string[]) {
           }
 
           // Combinamos los resultados
-          if (regexMatches.length > 0 || astFindings.length > 0) {
+          if (astFindings.length > 0) {
             result.push({
               file: fullPath, // Ruta completa del archivo
-              matches: regexMatches, // Las coincidencias encontradas con regex
+              // matches: regexMatches, // Las coincidencias encontradas con regex
               astFindings: astFindings, // Las coincidencias encontradas con AST
             });
           }

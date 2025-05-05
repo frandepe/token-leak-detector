@@ -1,3 +1,5 @@
+// Archivo no utilizado actualmente
+
 import { patterns } from "../config/patterns";
 
 // Función que recibe un contenido en texto y busca coincidencias de secretos usando los patrones definidos

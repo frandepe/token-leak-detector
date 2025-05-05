@@ -62,16 +62,16 @@ if (ignorePatterns.length > 0) {
 try {
   // Ejecutar el escaneo
   const scanResult = scanDirectory(options.path, ignorePatterns);
+  // console.log("scanResult", scanResult.findings);
 
-  // Filtrar los resultados para omitir archivos específicos y los que no tienen astFindings
+  // Filtrar los resultados para omitir archivos específicos pero mantener todos los findings
   const filteredFindings = scanResult.findings.filter((finding: any) => {
     const isExcluded =
       finding.file === "src\\config\\patterns.ts" ||
       finding.file === "src\\config\\patterns.js" ||
+      finding.file === "src\\analyzers\\http-request-analyzer.ts" ||
       finding.file === "src\\services\\astAnalyzer.ts";
-    const hasCodeFindings =
-      finding.astFindings && finding.astFindings.length > 0;
-    return !isExcluded && hasCodeFindings;
+    return !isExcluded; // Mantener todos los findings, sin excluir por 'astFindings' o 'location'
   });
 
   // Formatear los resultados para una mejor visualización
@@ -80,8 +80,8 @@ try {
     codeAnalysis: finding.astFindings.map((f: any) => ({
       type: f.type,
       code: f.code,
-      line: f.location.line,
-      column: f.location.column,
+      line: f.location ? f.location.line : null, // Asegurarse de que la línea y columna puedan ser nulos
+      column: f.location ? f.location.column : null,
       severity: f.severity,
       description: f.description,
     })),
@@ -118,7 +118,7 @@ try {
           console.log(
             `    - [${issue.severity.toUpperCase()}] ${
               issue.description
-            } (line ${issue.line})`
+            } (line ${issue.line || "N/A"})`
           );
         });
       });
