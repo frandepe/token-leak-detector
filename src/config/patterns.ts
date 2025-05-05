@@ -1,6 +1,7 @@
 export const patterns: RegExp[] = [
-  /\b[A-Za-z0-9_-]{16,}\.[A-Za-z0-9_-]{16,}\.[A-Za-z0-9_-]{16,}\b/g, // JWT tokens con separaciones de 3 puntos
-  /\b[A-Za-z0-9_-]{16,}\.[A-Za-z0-9_-]{16,}\b/g, // JWT tokens con separaciones de 2 puntos
+  // /\b[A-Za-z0-9_-]{16,}\.[A-Za-z0-9_-]{16,}\.[A-Za-z0-9_-]{16,}\b/g, // JWT tokens con separaciones de 3 puntos
+  // /\b[A-Za-z0-9_-]{16,}\.[A-Za-z0-9_-]{16,}\b/g, // JWT tokens con separaciones de 2 puntos
+
   /AIza[0-9A-Za-z\-_]{35}/g, // API Key de Google
   /ya29\.[0-9A-Za-z\-_]+/g, // OAuth2 tokens de Google
   /AKIA[0-9A-Z]{16}/g, // AWS Access Key
@@ -16,18 +17,21 @@ export const patterns: RegExp[] = [
   /xox[baprs]-[0-9a-zA-Z]{10,48}/g, // Slack Token
   /AC[a-z0-9]{32}/gi, // Twilio SID/Secret
   /SG\.[A-Za-z0-9\-_]{22}\.[A-Za-z0-9\-_]{43}/g, // SendGrid API Key
-  /[0-9a-f]{32}-us[0-9]{1,2}/g, // Firebase Token
+  // /[0-9a-f]{32}-us[0-9]{1,2}/g, // Firebase Token esto genera un desastre en el codigo
   /firebase[_\-]?secret[^a-zA-Z0-9]?[=:]\s*['"]?[A-Za-z0-9\-_=]{32,}['"]?/g, // Firebase Secret
   /heroku[_\-]?api[_\-]?key[^a-zA-Z0-9]?[=:]\s*['"]?[a-f0-9]{32}['"]?/g, // Heroku API Key
   /Bearer\s+[A-Za-z0-9\-._~+/]+=*/g, // Bearer Token
   /(?<!process\.env\.)(?<!import\.meta\.env\.)\b(api[_-]?key|token|secret|access[_-]?token|authorization|auth)[\s:=]+['"][A-Za-z0-9_\-\.=]{8,}['"]/gi, // Generico de claves y tokens, excluye tanto process.env como import.meta.env
   /\baccess_token=([a-zA-Z0-9\-_]+)/gi, // Tokens de acceso
-  /['"][a-f0-9]{32,64}['"]/gi, // Cadenas alfanuméricas de 32 a 64 caracteres
-  /\b[a-f0-9]{40,128}\b/g, // Token con 40 a 128 caracteres hexadecimales
+  // /['"][a-f0-9]{32,64}['"]/gi, // Cadenas alfanuméricas de 32 a 64 caracteres
+  // /\b[a-f0-9]{40,128}\b/g, // Token con 40 a 128 caracteres hexadecimales
   /-----BEGIN (RSA|DSA|EC|PGP|OPENSSH) PRIVATE KEY-----/g, // Claves privadas (RSA, DSA, etc)
   /-----BEGIN PRIVATE KEY-----/g, // Cualquier clave privada
-  /\b([A-Za-z0-9+\/]{40,}=*)\b/g, // Base64 encoded tokens
   /\b(client_secret|consumer_secret|auth_token|refresh_token|session_token)[^=\n]{0,20}['"][^'"]{10,}['"]/gi, // Tokens genéricos con valores
+  // Exclusión de importaciones de módulos (importaciones de componentes)
+  // Excluir las rutas de importación comunes de componentes
+  // /import\s+\{?([A-Za-z0-9_-]+)\}?[\s\S]*['"]([A-Za-z0-9_-]+)['"]/g, // Excluye rutas de importación de componentes
+  // Comentar esta línea para evitar falsos positivos con asignaciones (ej: api_key = "12345abcdef")
   // /[a-zA-Z0-9_]+\s*=\s*['"][A-Za-z0-9\-_]+['"]/g, // Captura cualquier asignación de variable (ej: api_key = "12345abcdef") puede incluir falso positivo
 ];
 
