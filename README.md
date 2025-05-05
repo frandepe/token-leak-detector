@@ -13,7 +13,7 @@ npm install -g token-leak-detector
 Una vez instalado, puedes ejecutar la herramienta desde la línea de comandos con el siguiente comando:
 
 ```bash
-npx token-leak-detector --path <ruta-del-codigo> --output <nombre-del-archivo-de-reporte>
+npx token-leak-detector --path <ruta-del-codigo> --output <nombre-del-archivo-de-reporte.json>
 ```
 
 Opciones
@@ -32,15 +32,15 @@ Options:
 
 ## Tipos de vulnerabilidades detectadas
 
-🔐 Contraseñas hardcodeadas (hardcoded_password)<br>
-**_const db_pass = "abc123";_**
+🔐 Contraseñas hardcodeadas (hardcoded*password)<br>
+\*\*\_const db_pass = "abc123";*\*\*
 
-⚠️ Comparaciones inseguras de contraseñas (insecure_password_comparison)<br>
-**_if (pass === "123456") { ... }_**
+⚠️ Comparaciones inseguras de contraseñas (insecure*password_comparison)<br>
+\*\*\_if (pass === "123456") { ... }*\*\*
 
-🌐 Tokens o claves sensibles en URLs (sensitive_data_in_url), incluyendo:<br>
-**_fetch("https://api.example.com?token=abc123")_**<br>
-**_axios.get("https://api.example.com", { params: { token: "abc123" } })_**
+🌐 Tokens o claves sensibles en URLs (sensitive*data_in_url), incluyendo:<br>
+\*\*\_fetch("https://api.example.com?token=abc123")***<br>
+**_axios.get("https://api.example.com", { params: { token: "abc123" } })_\*\*
 
 🔍 7. Análisis de comentarios peligrosos<br>
 **_// TODO: quitar esta key antes de subir<br>
@@ -61,6 +61,7 @@ El archivo de salida (por ejemplo report.json) tendrá la siguiente estructura:
 ```json
 {
   "scannedAt": "2025-05-04T20:21:43.103Z",
+  "totalFindings": 7,
   "findings": [
     {
       "file": "src/routes/authenticate.ts",

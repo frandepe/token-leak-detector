@@ -63,36 +63,40 @@ try {
   // Ejecutar el escaneo
   const scanResult = scanDirectory(options.path, ignorePatterns);
 
-  // Filtrar los resultados para omitir el archivo "src\\config\\patterns.ts"
+  // Filtrar los resultados para omitir archivos específicos y los que no tienen astFindings
   const filteredFindings = scanResult.findings.filter((finding: any) => {
-    return !(
+    const isExcluded =
       finding.file === "src\\config\\patterns.ts" ||
       finding.file === "src\\config\\patterns.js" ||
-      finding.file === "src\\services\\astAnalyzer.ts"
-    );
+      finding.file === "src\\services\\astAnalyzer.ts";
+    const hasCodeFindings =
+      finding.astFindings && finding.astFindings.length > 0;
+    return !isExcluded && hasCodeFindings;
   });
 
   // Formatear los resultados para una mejor visualización
+  const formattedFindings = filteredFindings.map((finding: any) => ({
+    file: finding.file,
+    codeAnalysis: finding.astFindings.map((f: any) => ({
+      type: f.type,
+      code: f.code,
+      line: f.location.line,
+      column: f.location.column,
+      severity: f.severity,
+      description: f.description,
+    })),
+  }));
+
+  // Calcular la cantidad total de findings
+  const totalFindings = formattedFindings.reduce((acc: number, file: any) => {
+    return acc + file.codeAnalysis.length;
+  }, 0);
+
+  // Construir los resultados finales
   const formattedResults = {
     scannedAt: scanResult.scannedAt,
-    findings: filteredFindings.map((finding: any) => {
-      const result: any = {
-        file: finding.file,
-      };
-
-      if (finding.astFindings && finding.astFindings.length > 0) {
-        result.codeAnalysis = finding.astFindings.map((f: any) => ({
-          type: f.type,
-          code: f.code,
-          line: f.location.line,
-          column: f.location.column,
-          severity: f.severity,
-          description: f.description,
-        }));
-      }
-
-      return result;
-    }),
+    totalFindings,
+    findings: formattedFindings,
   };
 
   // Guardar o mostrar los resultados
@@ -104,21 +108,19 @@ try {
       console.log(JSON.stringify(formattedResults, null, 2));
     } else {
       console.log(`\nScan completed at: ${formattedResults.scannedAt}`);
+      console.log(`Total findings: ${formattedResults.totalFindings}`);
       console.log(`Files with findings: ${formattedResults.findings.length}`);
 
       formattedResults.findings.forEach((finding: any) => {
         console.log(`\nFile: ${finding.file}`);
-
-        if (finding.codeAnalysis) {
-          console.log(`  Code issues: ${finding.codeAnalysis.length}`);
-          finding.codeAnalysis.forEach((issue: any) => {
-            console.log(
-              `    - [${issue.severity.toUpperCase()}] ${
-                issue.description
-              } (line ${issue.line})`
-            );
-          });
-        }
+        console.log(`  Code issues: ${finding.codeAnalysis.length}`);
+        finding.codeAnalysis.forEach((issue: any) => {
+          console.log(
+            `    - [${issue.severity.toUpperCase()}] ${
+              issue.description
+            } (line ${issue.line})`
+          );
+        });
       });
     }
   }
